@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Smart Search Demo</title>
+
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 40px;
+        background: #f9fafb;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .theme-btn {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #111827;
+        color: white;
+        font-size: 14px;
+      }
+
+      .container {
+        max-width: 400px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="header">
+      <h2>Bank Smart Search</h2>
+      <button id="toggleTheme" class="theme-btn">
+        Toggle Theme
+      </button>
+    </div>
+
+    <div class="container">
+      <smart-search id="search"></smart-search>
+    </div>
+
+    <script type="module">
+      import './src/smart-search.js';
+
+      const el = document.getElementById('search');
+      const btn = document.getElementById('toggleTheme');
+
+      el.data = [
+        { id: 1, label: 'Savings Account', type: 'account' },
+        { id: 2, label: 'Current Account', type: 'account' },
+        { id: 3, label: 'Transaction History', type: 'transaction' },
+        { id: 4, label: 'Customer Profile', type: 'customer' },
+      ];
+
+      btn.addEventListener('click', () => {
+        el.theme = el.theme === 'dark' ? 'light' : 'dark';
+        document.body.style.background =
+          el.theme === 'dark' ? '#111827' : '#f9fafb';
+      });
+
+      el.addEventListener('select', (e) => {
+        console.log('Selected:', e.detail);
+      });
+
+      el.addEventListener('search', (e) => {
+        console.log('Search:', e.detail.query);
+      });
+    </script>
+  </body>
+</html>
