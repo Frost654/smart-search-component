@@ -15,6 +15,8 @@ export class SmartSearch extends LitElement {
     debounceTime: { type: Number },
     maxResults: { type: Number },
     customFilter: { attribute: false },
+    dataMapper: { attribute: false },
+    supportedTypes: { type: Array },
   };
 
   constructor() {
@@ -28,7 +30,8 @@ export class SmartSearch extends LitElement {
     this.placeholder = 'Search...';
     this.theme = 'light';
 
-    this.filtersList = ['all', 'account', 'transaction', 'customer'];
+    this._supportedTypes = ['all', 'account', 'transaction', 'customer'];
+    this.filtersList = this._supportedTypes;
     this.filterFocusIndex = 0;
 
     this.announcement = '';
@@ -37,6 +40,7 @@ export class SmartSearch extends LitElement {
     this.debounceTime = 0;
     this.maxResults = 50;
     this.customFilter = null;
+    this.dataMapper = null;
     this._debounceTimer = null;
 
     this.handleOutsideClick = this.handleOutsideClick.bind(this);
@@ -61,13 +65,31 @@ export class SmartSearch extends LitElement {
     return this._data;
   }
 
+  set supportedTypes(value) {
+    this._supportedTypes = value;
+    this.filtersList = value;
+    this.requestUpdate();
+  }
+
+  get supportedTypes() {
+    return this._supportedTypes;
+  }
+
   normalizeData(data) {
-    return data.map(item => ({
-      id: item.id ?? item._id ?? Math.random(),
-      label: item.label ?? item.name ?? item.title ?? '',
-      type: item.type ?? item.category ?? 'other',
-      meta: item.meta ?? item
-    }));
+    return data.map(item => {
+      if (this.dataMapper && typeof this.dataMapper === 'function') {
+        return this.dataMapper(item);
+      }
+
+      return {
+        id: item.id ?? item._id ?? Math.random(),
+        label: item.label ?? item.name ?? item.title ?? '',
+        type: item.type ?? item.category ?? 'other',
+        display: item.display ?? item.displayName ?? '',
+        description: item.description ?? item.details ?? '',
+        meta: item.meta ?? item
+      };
+    });
   }
 
   connectedCallback() {
