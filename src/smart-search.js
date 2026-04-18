@@ -43,7 +43,7 @@ export class SmartSearch extends LitElement {
     this.handleResize = this.handleResize.bind(this);
   }
 
-  // ✅ NEW: reliable announcer
+
   updateAnnouncement(text) {
     this.announcement = '';
     setTimeout(() => {
