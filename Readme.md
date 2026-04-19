@@ -31,6 +31,40 @@ cd smart-search-component
 npm install
 ```
 
+## Technical Justification
+
+### Technology Stack
+
+**Web Components + Lit**
+- **Framework-agnostic**: Works with React, Vue, Angular, or vanilla JavaScript without additional adapters
+- **Native browser standard**: Uses W3C Web Components API, ensuring longevity and no framework lock-in
+- **Lightweight**: Lit (~5KB) provides reactive property/attribute binding without the overhead of full frameworks
+- **Shadow DOM**: Provides style and DOM encapsulation, preventing conflicts in applications with multiple components
+
+**Why Not Framework-Specific?**
+- A banking component is deployed across multiple codebases (some React, some Vue, some legacy)
+- Web Components eliminate the need for separate implementations
+- Reduces maintenance burden and ensures consistent behavior
+
+### Accessibility & Web Standards
+
+- **ARIA attributes**: Full keyboard navigation with `role="combobox"`, `aria-expanded`, `aria-selected`
+- **Semantic HTML**: Proper use of `<input>`, `<button>`, `<div role="option">` elements
+- **Keyboard support**: Arrow keys, Enter, Escape follow WAI-ARIA combobox pattern
+- **Live regions**: Screen reader announcements on navigation
+
+### Testing Strategy
+
+- **Lean test suite**: 23 essential tests (~270 lines) proportional to component size (~600 lines)
+- **Human-maintainable**: Focuses on critical paths rather than exhaustive coverage
+- **@open-wc/testing**: Industry standard for testing Web Components
+- **Automated browser testing**: Web Test Runner with Chrome for consistent cross-browser validation
+
+Why lean over comprehensive?
+- Comprehensive tests (84+ tests) exceeded component size and become maintenance debt
+- Essential tests catch real bugs and regressions
+- Reduces onboarding friction for new team members
+
 ## Usage
 
 ### Basic Example
@@ -104,7 +138,16 @@ Run the test suite:
 npm run test
 ```
 
-The tests use Web Test Runner with Puppeteer for automated browser testing.
+Tests include:
+- **Basic Rendering** (3 tests): Component structure, themes, clear button
+- **Search Filtering** (5 tests): Query matching, configuration (minChars, maxResults), type filtering
+- **Item Selection** (3 tests): Click selection, event emissions, dropdown closure
+- **Keyboard Navigation** (3 tests): Arrow keys, Enter/Escape, focus management
+- **User Actions** (2 tests): Clear button, outside click handling
+- **Configuration** (4 tests): Custom filters, custom mappers, debounce timing
+- **Edge Cases** (3 tests): Empty data, case-insensitive search, text highlighting
+
+The test suite uses Web Test Runner with Chrome browser for automated testing.
 
 ## API Reference
 
