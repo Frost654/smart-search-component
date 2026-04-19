@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "web-test-runner --files test/**/*.test.js --node-resolve --puppeteer"
+    "test": "web-test-runner test/**/*.test.js --node-resolve"
   },
   "keywords": [],
   "author": "",
@@ -17,8 +17,6 @@
   "devDependencies": {
     "@open-wc/testing": "^4.0.0",
     "@web/test-runner": "^0.20.2",
-    "@web/test-runner-puppeteer": "^0.18.0",
-    "vite": "^8.0.8",
-    "vitest": "^4.1.4"
+    "vite": "^8.0.8"
   }
 }

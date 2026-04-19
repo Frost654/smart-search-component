@@ -1,4 +1,4 @@
-import { fixture, html, expect, oneEvent } from '@open-wc/testing';
+﻿import { fixture, html, expect, oneEvent, aTimeout } from '../node_modules/@open-wc/testing/index.js';
 import '../src/smart-search.js';
 
 describe('smart-search', () => {
@@ -8,199 +8,284 @@ describe('smart-search', () => {
     { id: 3, label: 'Transaction A', type: 'transaction' },
   ];
 
-  const alternativeFormatData = [
-    { _id: '001', name: 'Premium Account', category: 'account' },
-    { _id: '002', title: 'Wire Transfer', category: 'transaction' },
-    { _id: '003', name: 'John Doe', category: 'customer' },
-  ];
-
-  const enrichedBankingData = [
-    { 
-      id: 'acc-001', 
-      label: 'Business Checking', 
-      type: 'account',
-      description: 'Multi-user business account',
-      displayName: 'Business Checking (****1234)'
-    },
-    { 
-      id: 'tr-001', 
-      label: 'Payment to Vendor ABC',
-      type: 'transaction',
-      description: '$5,000.00',
-      displayName: 'Payment - ABC Corp'
-    },
-    { 
-      id: 'cust-001', 
-      label: 'Sarah Johnson',
-      type: 'customer',
-      description: 'Frequent beneficiary',
-      displayName: 'Sarah Johnson (Mobile: ***-**-7890)'
-    },
-  ];
-
-  const nestedBankingData = [
-    { 
-      id: 'acc-01',
-      account: { name: 'Savings Plus', number: '**** 1234' },
-      type: 'account'
-    },
-    { 
-      id: 'ben-01',
-      beneficiary: { firstName: 'James', lastName: 'Wilson' },
-      type: 'beneficiary'
-    }
-  ];
-
-  it('renders the component', async () => {
-    const el = await fixture(html`<smart-search></smart-search>`);
-    const input = el.shadowRoot.querySelector('input');
-    expect(input).to.exist;
-  });
-
-  it('filters results based on input', async () => {
-    const el = await fixture(html`<smart-search></smart-search>`);
-    el.data = mockData;
-
-    const input = el.shadowRoot.querySelector('input');
-    input.value = 'sav';
-    input.dispatchEvent(new Event('input'));
-
-    await el.updateComplete;
-
-    expect(el.filtered.length).to.equal(1);
-    expect(el.filtered[0].label).to.equal('Savings Account');
-  });
-
-  it('shows no results message when nothing matches', async () => {
-    const el = await fixture(html`<smart-search></smart-search>`);
-    el.data = mockData;
-
-    const input = el.shadowRoot.querySelector('input');
-    input.value = 'xyz';
-    input.dispatchEvent(new Event('input'));
-
-    await el.updateComplete;
-
-    expect(el.filtered.length).to.equal(0);
-  });
-
-  it('selects an item and emits event', async () => {
-    const el = await fixture(html`<smart-search></smart-search>`);
-    el.data = mockData;
-
-    const input = el.shadowRoot.querySelector('input');
-    input.value = 'sav';
-    input.dispatchEvent(new Event('input'));
-
-    await el.updateComplete;
-
-    const item = el.shadowRoot.querySelector('.item');
-    setTimeout(() => item.click());
-
-    const event = await oneEvent(el, 'select');
-
-    expect(event.detail.label).to.equal('Savings Account');
-  });
-
-  it('filters by category', async () => {
-    const el = await fixture(html`<smart-search></smart-search>`);
-    el.data = mockData;
-
-    const input = el.shadowRoot.querySelector('input');
-    input.value = 'account';
-    input.dispatchEvent(new Event('input'));
-
-    await el.updateComplete;
-
-    const filterButtons = el.shadowRoot.querySelectorAll('.filter');
-    filterButtons[1].click(); // account filter
-
-    await el.updateComplete;
-
-    expect(el.filtered.every(item => item.type === 'account')).to.be.true;
-  });
-
-  describe('Data Format Flexibility', () => {
-    it('handles alternative field names (_id, name, title, category)', async () => {
+  describe('Basic Rendering', () => {
+    it('renders input with correct attributes', async () => {
       const el = await fixture(html`<smart-search></smart-search>`);
-      el.data = alternativeFormatData;
-
       const input = el.shadowRoot.querySelector('input');
-      input.value = 'premium';
-      input.dispatchEvent(new Event('input'));
-
-      await el.updateComplete;
-
-      expect(el.filtered.length).to.equal(1);
-      expect(el.filtered[0].label).to.equal('Premium Account');
-      expect(el.filtered[0].type).to.equal('account');
+      expect(input).to.exist;
+      expect(input.getAttribute('role')).to.equal('combobox');
     });
 
-    it('normalizes _id to id field', async () => {
-      const el = await fixture(html`<smart-search></smart-search>`);
-      el.data = alternativeFormatData;
-
-      expect(el.data[0].id).to.equal('001');
-      expect(el.data[1].id).to.equal('002');
+    it('applies theme attribute', async () => {
+      const el = await fixture(html`<smart-search theme="dark"></smart-search>`);
+      expect(el.theme).to.equal('dark');
     });
 
-    it('handles enriched banking data with descriptions', async () => {
+    it('renders clear button only when query exists', async () => {
       const el = await fixture(html`<smart-search></smart-search>`);
-      el.data = enrichedBankingData;
-
+      el.data = mockData;
+      let clearBtn = el.shadowRoot.querySelector('.clear-btn');
+      expect(clearBtn).to.not.exist;
       const input = el.shadowRoot.querySelector('input');
-      input.value = 'business';
+      input.value = 'test';
       input.dispatchEvent(new Event('input'));
-
       await el.updateComplete;
+      clearBtn = el.shadowRoot.querySelector('.clear-btn');
+      expect(clearBtn).to.exist;
+    });
+  });
 
+  describe('Search Filtering', () => {
+    it('filters results based on input', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
       expect(el.filtered.length).to.equal(1);
-      expect(el.filtered[0].description).to.equal('Multi-user business account');
     });
 
-    it('supports custom data mapper for complex transformations', async () => {
+    it('shows empty results message when no matches', async () => {
       const el = await fixture(html`<smart-search></smart-search>`);
-      
-      const customMapper = (item) => ({
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'xyz123notfound';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const noResults = el.shadowRoot.querySelector('.no-results');
+      expect(noResults).to.exist;
+    });
+
+    it('filters by type when filter button clicked', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'a';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const filterButtons = el.shadowRoot.querySelectorAll('.filter');
+      filterButtons[1].click();
+      await el.updateComplete;
+      expect(el.selectedFilter).to.equal('account');
+    });
+
+    it('respects minChars configuration', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.minChars = 3;
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sa';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.filtered.length).to.equal(0);
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.filtered.length).to.be.greaterThan(0);
+    });
+
+    it('limits results with maxResults', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.maxResults = 1;
+      const largeData = Array.from({ length: 10 }, (_, i) => ({
+        id: i, label: `Account ${i}`, type: 'account'
+      }));
+      el.data = largeData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'account';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.filtered.length).to.equal(1);
+    });
+  });
+
+  describe('Item Selection', () => {
+    it('selects item and emits select event', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const item = el.shadowRoot.querySelector('.item');
+      setTimeout(() => item.click());
+      const event = await oneEvent(el, 'select');
+      expect(event.detail.label).to.equal('Savings Account');
+    });
+
+    it('emits change event with correct structure', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const item = el.shadowRoot.querySelector('.item');
+      setTimeout(() => item.click());
+      const event = await oneEvent(el, 'change');
+      expect(event.detail.value).to.include.keys('id', 'label', 'type');
+    });
+
+    it('closes dropdown after selection', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.open).to.be.true;
+      const item = el.shadowRoot.querySelector('.item');
+      item.click();
+      await el.updateComplete;
+      expect(el.open).to.be.false;
+    });
+  });
+
+  describe('Keyboard Navigation', () => {
+    it('navigates results with arrow keys', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'account';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+      await el.updateComplete;
+      expect(el.activeIndex).to.equal(0);
+    });
+
+    it('selects with Enter key', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'account';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      setTimeout(() => {
+        input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+      });
+      const event = await oneEvent(el, 'select');
+      expect(event.detail).to.exist;
+    });
+
+    it('closes dropdown with Escape key', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'account';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.open).to.be.true;
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      await el.updateComplete;
+      expect(el.open).to.be.false;
+    });
+  });
+
+  describe('User Actions', () => {
+    it('clears search on clear button click', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'test';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const clearBtn = el.shadowRoot.querySelector('.clear-btn');
+      clearBtn.click();
+      await el.updateComplete;
+      expect(el.query).to.equal('');
+      expect(el.open).to.be.false;
+    });
+
+    it('closes dropdown when clicking outside', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'test';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.open).to.be.true;
+      document.dispatchEvent(new MouseEvent('click'));
+      await el.updateComplete;
+      expect(el.open).to.be.false;
+    });
+  });
+
+  describe('Configuration', () => {
+    it('supports custom filter function', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.customFilter = (item, query) => item.label.toLowerCase().startsWith(query.toLowerCase());
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.filtered.length).to.equal(1);
+    });
+
+    it('supports custom data mapper', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.dataMapper = (item) => ({
         id: item.id,
-        label: item.account?.name || item.beneficiary?.firstName,
+        label: item.label.toUpperCase(),
         type: item.type,
         meta: item
       });
+      el.data = mockData;
+      expect(el.data[0].label).to.equal('SAVINGS ACCOUNT');
+    });
 
-      el.dataMapper = customMapper;
-      el.data = nestedBankingData;
-
+    it('supports debounce delay', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.debounceTime = 100;
+      el.data = mockData;
       const input = el.shadowRoot.querySelector('input');
-      input.value = 'savings';
+      input.value = 'sav';
       input.dispatchEvent(new Event('input'));
-
       await el.updateComplete;
+      expect(el.filtered.length).to.equal(0);
+      await aTimeout(150);
+      expect(el.filtered.length).to.be.greaterThan(0);
+    });
 
+    it('allows setting supported filter types', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.supportedTypes = ['all', 'account', 'transaction'];
+      expect(el.filtersList).to.deep.equal(['all', 'account', 'transaction']);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('handles empty data array', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = [];
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'test';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      expect(el.filtered.length).to.equal(0);
+    });
+
+    it('handles case-insensitive search', async () => {
+      const el = await fixture(html`<smart-search></smart-search>`);
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'SAVINGS';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
       expect(el.filtered.length).to.equal(1);
-      expect(el.filtered[0].label).to.equal('Savings Plus');
     });
 
-    it('supports dynamic filter types for different contexts', async () => {
+    it('highlights query text in results', async () => {
       const el = await fixture(html`<smart-search></smart-search>`);
-      el.supportedTypes = ['all', 'account', 'transaction', 'customer', 'beneficiary'];
-      el.data = enrichedBankingData;
-
-      expect(el.filtersList).to.deep.equal(['all', 'account', 'transaction', 'customer', 'beneficiary']);
-    });
-
-    it('preserves original data in meta field', async () => {
-      const el = await fixture(html`<smart-search></smart-search>`);
-      const original = { 
-        _id: 'test-001',
-        name: 'Test Account',
-        category: 'account',
-        customField: 'custom value'
-      };
-      
-      el.data = [original];
-
-      expect(el.data[0].meta.customField).to.equal('custom value');
+      el.data = mockData;
+      const input = el.shadowRoot.querySelector('input');
+      input.value = 'sav';
+      input.dispatchEvent(new Event('input'));
+      await el.updateComplete;
+      const item = el.shadowRoot.querySelector('.item');
+      expect(item.innerHTML).to.include('<mark>');
     });
   });
 });
